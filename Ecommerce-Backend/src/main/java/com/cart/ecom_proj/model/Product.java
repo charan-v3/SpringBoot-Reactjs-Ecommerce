@@ -29,7 +29,9 @@ public class Product {
 
     private String imageName;
     private String imageType;
+    private String imagePath; // Local file path for image storage
     @Lob
+    @Column(columnDefinition = "LONGBLOB")
     private byte[] imageDate;
 
     public int getId() {
@@ -112,7 +114,7 @@ public class Product {
         this.imageName = imageName;
     }
 
-    public String getImageType(String contentType) {
+    public String getImageType() {
         return imageType;
     }
 
@@ -126,5 +128,13 @@ public class Product {
 
     public void setImageDate(byte[] imageDate) {
         this.imageDate = imageDate;
+    }
+
+    public String getImagePath() {
+        return imagePath;
+    }
+
+    public void setImagePath(String imagePath) {
+        this.imagePath = imagePath;
     }
 }

@@ -1,11 +1,14 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../Context/AuthContext";
 import axios from "axios";
 import AppContext from "../Context/Context";
 import unplugged from "../assets/unplugged.png"
 
 const Home = ({ selectedCategory }) => {
   const { data, isError, addToCart, refreshData } = useContext(AppContext);
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [isDataFetched, setIsDataFetched] = useState(false);
 
@@ -48,6 +51,15 @@ const Home = ({ selectedCategory }) => {
   const filteredProducts = selectedCategory
     ? products.filter((product) => product.category === selectedCategory)
     : products;
+
+  const handleAddToCart = (product) => {
+    if (!isAuthenticated()) {
+      alert('Please login to add items to cart');
+      navigate('/customer/login');
+      return;
+    }
+    addToCart(product);
+  };
 
   if (isError) {
     return (
@@ -166,7 +178,7 @@ const Home = ({ selectedCategory }) => {
                       disabled={!productAvailable}
                     >
                       {productAvailable ? "Add to Cart" : "Out of Stock"}
-                    </button> 
+                    </button>
                   </div>
                 </Link>
               </div>

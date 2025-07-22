@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
-import Home from "./Home"
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../Context/AuthContext";
 import axios from "axios";
-// import { json } from "react-router-dom";
-// import { BiSunFill, BiMoon } from "react-icons/bi";
 
 const Navbar = ({ onSelectCategory, onSearch }) => {
+  const { isAuthenticated, isAdmin, logout, user } = useAuth();
+  const navigate = useNavigate();
+
   const getInitialTheme = () => {
     const storedTheme = localStorage.getItem("theme");
     return storedTheme ? storedTheme : "light-theme";
@@ -84,10 +86,16 @@ const Navbar = ({ onSelectCategory, onSearch }) => {
     setSelectedCategory(category);
     onSelectCategory(category);
   };
+
   const toggleTheme = () => {
     const newTheme = theme === "dark-theme" ? "light-theme" : "dark-theme";
     setTheme(newTheme);
     localStorage.setItem("theme", newTheme);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
   };
 
   useEffect(() => {
@@ -107,8 +115,8 @@ const Navbar = ({ onSelectCategory, onSearch }) => {
       <header>
         <nav className="navbar navbar-expand-lg fixed-top">
           <div className="container-fluid">
-            <a className="navbar-brand" href="https://www.linkedin.com/in/harish-kumar-gatti-663066249/">
-              HiTeckKart
+            <a className="navbar-brand" href="/">
+              Ekart
             </a>
             <button
               className="navbar-toggler"
@@ -127,15 +135,17 @@ const Navbar = ({ onSelectCategory, onSearch }) => {
             >
               <ul className="navbar-nav me-auto mb-2 mb-lg-0">
                 <li className="nav-item">
-                  <a className="nav-link active" aria-current="page" href="/">
+                  <Link className="nav-link active" aria-current="page" to="/">
                     Home
-                  </a>
+                  </Link>
                 </li>
-                <li className="nav-item">
-                  <a className="nav-link" href="/add_product">
-                    Add Product
-                  </a>
-                </li>
+                {isAuthenticated() && isAdmin() && (
+                  <li className="nav-item">
+                    <Link className="nav-link" to="/add_product">
+                      Add Product
+                    </Link>
+                  </li>
+                )}
 
                 <li className="nav-item dropdown">
                   <a
@@ -171,15 +181,43 @@ const Navbar = ({ onSelectCategory, onSearch }) => {
                   <i className="bi bi-sun-fill"></i>
                 )}
               </button>
-              <div className="d-flex align-items-center cart">
-                <a href="/cart" className="nav-link text-dark">
-                  <i
-                    className="bi bi-cart me-2"
-                    style={{ display: "flex", alignItems: "center" }}
-                  >
-                    Cart
-                  </i>
-                </a>
+
+              <div className="d-flex align-items-center">
+                {/* Authentication Links */}
+                {!isAuthenticated() ? (
+                  <div className="d-flex align-items-center me-3">
+                    <Link to="/customer/login" className="btn btn-outline-primary me-2">
+                      Login
+                    </Link>
+                    <div className="dropdown">
+                      <button className="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        Sign Up
+                      </button>
+                      <ul className="dropdown-menu">
+                        <li><Link className="dropdown-item" to="/customer/signup">Customer</Link></li>
+                        <li><Link className="dropdown-item" to="/admin/signup">Admin</Link></li>
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="d-flex align-items-center me-3">
+                    <span className="navbar-text me-3">
+                      Welcome, {user?.username} ({user?.role})
+                    </span>
+                    <button className="btn btn-outline-danger" onClick={handleLogout}>
+                      Logout
+                    </button>
+                  </div>
+                )}
+
+                {/* Cart Link */}
+                <div className="cart me-3">
+                  <Link to="/cart" className="nav-link text-dark">
+                    <i className="bi bi-cart me-2" style={{ display: "flex", alignItems: "center" }}>
+                      Cart
+                    </i>
+                  </Link>
+                </div>
                 {/* <form className="d-flex" role="search" onSubmit={handleSearch} id="searchForm"> */}
                 <input
                   className="form-control me-2"

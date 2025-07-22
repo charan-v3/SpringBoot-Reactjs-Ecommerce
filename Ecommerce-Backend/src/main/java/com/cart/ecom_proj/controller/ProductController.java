@@ -51,14 +51,24 @@ public class ProductController {
     }
 
     @GetMapping("product/{productId}/image")
-    public ResponseEntity<byte[]> getImageByProductId(@PathVariable int productId){
+    public ResponseEntity getImageByProductId(@PathVariable int productId){
+        try {
+            Product product = service.getProductById(productId);
+            if (product == null) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
 
-        Product product = service.getProductById(productId);
-        byte[] imageFile = product.getImageDate();
+            byte[] imageFile = service.getProductImage(productId);
+            if (imageFile == null) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
 
-        return ResponseEntity.ok()
-                .contentType(MediaType.valueOf(product.getImageType("")))
-                .body(imageFile);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.valueOf(product.getImageType()))
+                    .body(imageFile);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @PutMapping("/product/{id}")

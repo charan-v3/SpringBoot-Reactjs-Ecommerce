@@ -49,8 +49,12 @@ public class Customer {
     // Customer specific fields
     private LocalDateTime lastVisitAt;
     private LocalDateTime lastPurchaseAt;
-    private int visitCount = 0;
-    private int purchaseCount = 0;
+
+    @Column(nullable = false)
+    private Long visitCount = 0L;
+
+    @Column(nullable = false)
+    private Long purchaseCount = 0L;
     private String preferredPaymentMethod;
     private boolean emailNotifications = true;
     private boolean smsNotifications = false;
@@ -168,20 +172,20 @@ public class Customer {
         this.lastPurchaseAt = lastPurchaseAt;
     }
 
-    public int getVisitCount() {
-        return visitCount;
+    public Long getVisitCount() {
+        return visitCount != null ? visitCount : 0L;
     }
 
-    public void setVisitCount(int visitCount) {
-        this.visitCount = visitCount;
+    public void setVisitCount(Long visitCount) {
+        this.visitCount = visitCount != null ? visitCount : 0L;
     }
 
-    public int getPurchaseCount() {
-        return purchaseCount;
+    public Long getPurchaseCount() {
+        return purchaseCount != null ? purchaseCount : 0L;
     }
 
-    public void setPurchaseCount(int purchaseCount) {
-        this.purchaseCount = purchaseCount;
+    public void setPurchaseCount(Long purchaseCount) {
+        this.purchaseCount = purchaseCount != null ? purchaseCount : 0L;
     }
 
     public String getPreferredPaymentMethod() {

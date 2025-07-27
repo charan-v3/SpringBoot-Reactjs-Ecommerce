@@ -3,8 +3,10 @@ package com.cart.ecom_proj.controller;
 import com.cart.ecom_proj.dto.AuthResponse;
 import com.cart.ecom_proj.dto.LoginRequest;
 import com.cart.ecom_proj.dto.SignupRequest;
-import com.cart.ecom_proj.model.User;
-import com.cart.ecom_proj.service.UserService;
+import com.cart.ecom_proj.model.Admin;
+import com.cart.ecom_proj.model.Customer;
+import com.cart.ecom_proj.service.AdminService;
+import com.cart.ecom_proj.service.CustomerService;
 import com.cart.ecom_proj.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -28,7 +30,10 @@ public class AuthController {
     private AuthenticationManager authenticationManager;
 
     @Autowired
-    private UserService userService;
+    private AdminService adminService;
+
+    @Autowired
+    private CustomerService customerService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -36,62 +41,85 @@ public class AuthController {
     @Autowired
     private JwtUtil jwtUtil;
 
-    @PostMapping("/signup")
-    public ResponseEntity<?> registerUser(@RequestBody SignupRequest signupRequest) {
+    @PostMapping("/customer/signup")
+    public ResponseEntity<?> registerCustomer(@RequestBody SignupRequest signupRequest) {
         try {
-            User user = userService.createUser(signupRequest);
-            return ResponseEntity.ok(new AuthResponse("User registered successfully"));
+            Customer customer = customerService.createCustomer(signupRequest);
+            return ResponseEntity.ok(new AuthResponse("Customer registered successfully"));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(new AuthResponse(e.getMessage()));
-        }
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
-        try {
-            // Find user by username
-            Optional<User> userOptional = userService.findByUsername(loginRequest.getUsername());
-            
-            if (userOptional.isEmpty()) {
-                return ResponseEntity.badRequest().body(new AuthResponse("User not found"));
-            }
-            
-            User user = userOptional.get();
-            
-            // Check password
-            if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-                return ResponseEntity.badRequest().body(new AuthResponse("Invalid credentials"));
-            }
-            
-            // Generate JWT token
-            String jwt = jwtUtil.generateToken(user.getUsername(), user.getRole().toString());
-            
-            return ResponseEntity.ok(new AuthResponse(jwt, user.getUsername(), user.getEmail(), user.getRole().toString()));
-            
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new AuthResponse("Authentication failed: " + e.getMessage()));
         }
     }
 
     @PostMapping("/admin/signup")
     public ResponseEntity<?> registerAdmin(@RequestBody SignupRequest signupRequest) {
         try {
-            signupRequest.setRole(User.Role.ADMIN);
-            User user = userService.createUser(signupRequest);
+            Admin admin = adminService.createAdmin(signupRequest);
             return ResponseEntity.ok(new AuthResponse("Admin registered successfully"));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(new AuthResponse(e.getMessage()));
         }
     }
 
-    @PostMapping("/customer/signup")
-    public ResponseEntity<?> registerCustomer(@RequestBody SignupRequest signupRequest) {
+    @PostMapping("/customer/login")
+    public ResponseEntity<?> authenticateCustomer(@RequestBody LoginRequest loginRequest) {
         try {
-            signupRequest.setRole(User.Role.CUSTOMER);
-            User user = userService.createUser(signupRequest);
-            return ResponseEntity.ok(new AuthResponse("Customer registered successfully"));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(new AuthResponse(e.getMessage()));
+            // Find customer by username
+            Optional<Customer> customerOptional = customerService.findByUsername(loginRequest.getUsername());
+
+            if (customerOptional.isEmpty()) {
+                return ResponseEntity.badRequest().body(new AuthResponse("Customer not found"));
+            }
+
+            Customer customer = customerOptional.get();
+
+            // Check password
+            if (!passwordEncoder.matches(loginRequest.getPassword(), customer.getPassword())) {
+                return ResponseEntity.badRequest().body(new AuthResponse("Invalid credentials"));
+            }
+
+            // Generate JWT token
+            String jwt = jwtUtil.generateToken(customer.getUsername(), "CUSTOMER", customer.getId());
+
+            return ResponseEntity.ok(new AuthResponse(jwt, customer.getUsername(), customer.getEmail(), "CUSTOMER"));
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new AuthResponse("Authentication failed: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/admin/login")
+    public ResponseEntity<?> authenticateAdmin(@RequestBody LoginRequest loginRequest) {
+        try {
+            // Find admin by username
+            Optional<Admin> adminOptional = adminService.findByUsername(loginRequest.getUsername());
+
+            if (adminOptional.isEmpty()) {
+                return ResponseEntity.badRequest().body(new AuthResponse("Admin not found"));
+            }
+
+            Admin admin = adminOptional.get();
+
+            // Check password
+            if (!passwordEncoder.matches(loginRequest.getPassword(), admin.getPassword())) {
+                return ResponseEntity.badRequest().body(new AuthResponse("Invalid credentials"));
+            }
+
+            // Check if admin is verified
+            if (!admin.isVerified()) {
+                return ResponseEntity.badRequest().body(new AuthResponse("Your admin account is pending verification. Please wait for approval from an existing admin."));
+            }
+
+            // Update last login
+            adminService.updateLastLogin(admin.getId());
+
+            // Generate JWT token
+            String jwt = jwtUtil.generateToken(admin.getUsername(), "ADMIN", admin.getId());
+
+            return ResponseEntity.ok(new AuthResponse(jwt, admin.getUsername(), admin.getEmail(), "ADMIN"));
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new AuthResponse("Authentication failed: " + e.getMessage()));
         }
     }
 

@@ -5,6 +5,8 @@
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   position: relative;
   overflow: hidden;
+  padding-top: var(--page-padding-top);
+  padding-bottom: var(--section-spacing);
 }
 
 .auth-container::before {
@@ -109,7 +111,7 @@
 
 /* Prevent excessive padding */
 .auth-card .card-body {
-  padding: 2rem !important;
+  padding: var(--form-padding) !important;
 }
 
 @media (max-width: 768px) {
@@ -118,8 +120,12 @@
   }
 
   .auth-container .container {
-    padding-left: 0.5rem !important;
-    padding-right: 0.5rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .auth-container {
+    padding-top: calc(var(--page-padding-top) - 1rem);
   }
 }
 
@@ -242,9 +248,10 @@
   .auth-card {
     margin: 1rem;
   }
-  
+
   .auth-container {
-    padding: 1rem 0;
+    padding-top: calc(var(--page-padding-top) - 1rem);
+    padding-bottom: 1rem;
   }
 }
 

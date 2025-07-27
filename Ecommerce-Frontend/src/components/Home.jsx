@@ -1,43 +1,71 @@
 import React, { useContext, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../Context/AuthContext";
-import axios from "axios";
+import axios from "../axios";
 import AppContext from "../Context/Context";
-import unplugged from "../assets/unplugged.png"
+import unplugged from "../assets/unplugged.png";
+import { showSuccessToast, showDetailedErrorToast } from "../utils/toast";
+import { handleCartError, logError } from "../utils/errorHandler";
 
 const Home = ({ selectedCategory }) => {
   const { data, isError, addToCart, refreshData } = useContext(AppContext);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [isDataFetched, setIsDataFetched] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!isDataFetched) {
-      refreshData();
-      setIsDataFetched(true);
+    const loadData = async () => {
+      if (!isDataFetched) {
+        setIsLoading(true);
+        try {
+          await refreshData();
+
+          // Fallback: Direct fetch if context data is still null
+          if (!data) {
+            const response = await axios.get("/products");
+            setProducts(response.data || []);
+          }
+        } catch (error) {
+          console.error('Error loading data:', error);
+          // Try direct fetch as last resort
+          try {
+            const response = await axios.get("/products");
+            setProducts(response.data || []);
+          } catch (fallbackError) {
+            console.error('Fallback fetch failed:', fallbackError);
+          }
+        } finally {
+          setIsDataFetched(true);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadData();
+  }, [refreshData, isDataFetched, data]);
+
+  useEffect(() => {
+    if (data !== null || isError) {
+      setIsLoading(false);
     }
-  }, [refreshData, isDataFetched]);
+  }, [data, isError]);
 
   useEffect(() => {
-    if (data && data.length > 0) {
+    if (data && Array.isArray(data) && data.length > 0) {
       const fetchImagesAndUpdateProducts = async () => {
         const updatedProducts = await Promise.all(
           data.map(async (product) => {
             try {
               const response = await axios.get(
-                `http://localhost:8080/api/product/${product.id}/image`,
+                `/product/${product.id}/image`,
                 { responseType: "blob" }
               );
               const imageUrl = URL.createObjectURL(response.data);
               return { ...product, imageUrl };
             } catch (error) {
-              console.error(
-                "Error fetching image for product ID:",
-                product.id,
-                error
-              );
-              return { ...product, imageUrl: "placeholder-image-url" };
+              return { ...product, imageUrl: "https://via.placeholder.com/300x200?text=No+Image" };
             }
           })
         );
@@ -45,62 +73,147 @@ const Home = ({ selectedCategory }) => {
       };
 
       fetchImagesAndUpdateProducts();
+    } else if (data && Array.isArray(data)) {
+      // If data is empty array, set products to empty array
+      setProducts([]);
     }
   }, [data]);
 
+  // Ensure we have valid data to work with
+  const safeProducts = Array.isArray(products) ? products : [];
   const filteredProducts = selectedCategory
-    ? products.filter((product) => product.category === selectedCategory)
-    : products;
+    ? safeProducts.filter((product) => product.category === selectedCategory)
+    : safeProducts;
 
   const handleAddToCart = (product) => {
-    if (!isAuthenticated()) {
-      alert('Please login to add items to cart');
-      navigate('/customer/login');
-      return;
+    try {
+      // Since we removed authentication restrictions, allow guest cart usage
+      const result = addToCart(product);
+
+      if (result.success) {
+        showSuccessToast(result.message);
+      } else {
+        showDetailedErrorToast({
+          message: result.message,
+          details: `Product: ${product.name}, Stock: ${product.stockQuantity}`
+        }, 'Add to Cart');
+      }
+    } catch (error) {
+      logError(error, 'Home - Add to Cart');
+      const errorMessage = handleCartError(error, 'add item to cart');
+      showDetailedErrorToast({
+        message: errorMessage,
+        details: error.message
+      }, 'Add to Cart');
     }
-    addToCart(product);
   };
+
+  if (isLoading) {
+    return (
+      <div className="page-container">
+        <div className="content-wrapper text-center">
+          <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading products...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isError) {
     return (
-      <h2 className="text-center" style={{ padding: "18rem" }}>
-      <img src={unplugged} alt="Error" style={{ width: '100px', height: '100px' }}/>
-      </h2>
+      <div className="page-container">
+        <div className="content-wrapper text-center">
+          <div className="error-container">
+            <img src={unplugged} alt="Error" style={{ width: '100px', height: '100px' }}/>
+            <h2 className="mt-3">Oops! Something went wrong</h2>
+            <p className="text-muted">We're having trouble loading the products. Please try again later.</p>
+            <button className="btn btn-primary mt-3" onClick={() => window.location.reload()}>
+              <i className="bi bi-arrow-clockwise me-2"></i>
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
+
+  // Component render logic
+
+  // Emergency fallback - always show something
+  if (!isLoading && !isError && filteredProducts.length === 0 && !data) {
+    return (
+      <div className="page-container">
+        <div className="content-wrapper">
+          <div className="alert alert-info text-center">
+            <h3>Welcome to Our Store!</h3>
+            <p>Loading products... If this persists, please refresh the page.</p>
+            <div className="mt-3">
+              <button
+                className="btn btn-primary me-2"
+                onClick={() => {
+                  setIsLoading(true);
+                  setIsDataFetched(false);
+                  refreshData().finally(() => setIsLoading(false));
+                }}
+              >
+                <i className="bi bi-arrow-clockwise me-2"></i>
+                Retry Loading
+              </button>
+              <button
+                className="btn btn-outline-secondary"
+                onClick={() => window.location.reload()}
+              >
+                <i className="bi bi-arrow-clockwise me-2"></i>
+                Refresh Page
+              </button>
+            </div>
+            {user && (
+              <div className="mt-3">
+                <small className="text-muted">
+                  Logged in as: {user.username} ({user.role})
+                </small>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Ensure we always render something
   return (
-    <>
-      <div
-        className="grid"
-        style={{
-          marginTop: "64px",
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-          gap: "20px",
-          padding: "20px",
-        }}
-      >
-        {filteredProducts.length === 0 ? (
-          <h2
-            className="text-center"
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            No Products Available
-          </h2>
+    <div className="page-container">
+      <div className="content-wrapper">
+        <div className="hero-section mb-4">
+          <h1 className="text-center mb-2">Discover Amazing Products</h1>
+          <p className="text-center text-muted mb-4">Find everything you need in our curated collection</p>
+        </div>
+        <div className="grid">
+        {!filteredProducts || filteredProducts.length === 0 ? (
+          <div className="text-center w-100" style={{ gridColumn: '1 / -1', padding: '2rem' }}>
+            <div className="alert alert-info">
+              <h3>No Products Available</h3>
+              <p className="text-muted mb-3">
+                {isError ? 'There was an error loading products.' : 'Check back later for new products!'}
+              </p>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  setIsLoading(true);
+                  refreshData().finally(() => setIsLoading(false));
+                }}
+              >
+                <i className="bi bi-arrow-clockwise me-2"></i>
+                Refresh Products
+              </button>
+            </div>
+          </div>
         ) : (
           filteredProducts.map((product) => {
-            const { id, brand, name, price, productAvailable, imageUrl } =
-              product;
-            const cardStyle = {
-              width: "18rem",
-              height: "12rem",
-              boxShadow: "rgba(0, 0, 0, 0.24) 0px 2px 3px",
-              backgroundColor: productAvailable ? "#fff" : "#ccc",
-            };
+            const { id, brand, name, price, productAvailable, stockQuantity, imageUrl } = product;
             return (
               <div
                 className="card mb-3"
@@ -109,12 +222,10 @@ const Home = ({ selectedCategory }) => {
                   height: "360px",
                   boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
                   borderRadius: "10px",
-                  overflow: "hidden", 
-                  backgroundColor: productAvailable ? "#fff" : "#ccc",
+                  overflow: "hidden",
+                  backgroundColor: (productAvailable && stockQuantity > 0) ? "#fff" : "#f5f5f5",
                   display: "flex",
-                  flexDirection: "column",
-                  justifyContent:'flex-start',
-                  alignItems:'stretch'
+                  flexDirection: "column"
                 }}
                 key={id}
               >
@@ -127,11 +238,10 @@ const Home = ({ selectedCategory }) => {
                     alt={name}
                     style={{
                       width: "100%",
-                      height: "150px", 
-                      objectFit: "cover",  
+                      height: "150px",
+                      objectFit: "cover",
                       padding: "5px",
-                      margin: "0",
-                      borderRadius: "10px 10px 10px 10px", 
+                      borderRadius: "10px"
                     }}
                   />
                   <div
@@ -145,39 +255,35 @@ const Home = ({ selectedCategory }) => {
                     }}
                   >
                     <div>
-                      <h5
-                        className="card-title"
-                        style={{ margin: "0 0 10px 0", fontSize: "1.2rem" }}
-                      >
+                      <h5 className="card-title" style={{ margin: "0 0 10px 0", fontSize: "1.2rem" }}>
                         {name.toUpperCase()}
                       </h5>
-                      <i
-                        className="card-brand"
-                        style={{ fontStyle: "italic", fontSize: "0.8rem" }}
-                      >
-                        {"~ " + brand}
+                      <i className="card-brand" style={{ fontStyle: "italic", fontSize: "0.8rem" }}>
+                        ~ {brand}
                       </i>
                     </div>
                     <hr className="hr-line" style={{ margin: "10px 0" }} />
                     <div className="home-cart-price">
-                      <h5
-                        className="card-text"
-                        style={{ fontWeight: "600", fontSize: "1.1rem",marginBottom:'5px' }}
-                      >
-                        <i class="bi bi-currency-rupee"></i>
-                        {price}
+                      <h5 className="card-text" style={{ fontWeight: "600", fontSize: "1.1rem", marginBottom: '5px' }}>
+                        ₹{price.toLocaleString('en-IN')}
                       </h5>
                     </div>
                     <button
                       className="btn-hover color-9"
-                      style={{margin:'10px 25px 0px '  }}
+                      style={{
+                        margin: '10px 25px 0px',
+                        backgroundColor: (productAvailable && stockQuantity > 0) ? '' : '#6c757d',
+                        cursor: (productAvailable && stockQuantity > 0) ? 'pointer' : 'not-allowed'
+                      }}
                       onClick={(e) => {
                         e.preventDefault();
-                        addToCart(product);
+                        if (productAvailable && stockQuantity > 0) {
+                          handleAddToCart(product);
+                        }
                       }}
-                      disabled={!productAvailable}
+                      disabled={!productAvailable || stockQuantity === 0}
                     >
-                      {productAvailable ? "Add to Cart" : "Out of Stock"}
+                      {(productAvailable && stockQuantity > 0) ? "Add to Cart" : "Out of Stock"}
                     </button>
                   </div>
                 </Link>
@@ -185,8 +291,9 @@ const Home = ({ selectedCategory }) => {
             );
           })
         )}
+        </div>
       </div>
-    </>
+    </div>
   );
 };
 

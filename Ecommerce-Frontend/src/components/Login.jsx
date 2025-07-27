@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
-import axios from 'axios';
+import axios from '../axios';
 import './Auth.css';
 
 const Login = ({ userType = 'customer' }) => {
@@ -11,6 +11,7 @@ const Login = ({ userType = 'customer' }) => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState('');
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -25,9 +26,14 @@ const Login = ({ userType = 'customer' }) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess('');
 
     try {
-      const response = await axios.post('http://localhost:8080/api/auth/login', formData);
+      const endpoint = userType === 'admin'
+        ? '/auth/admin/login'
+        : '/auth/customer/login';
+
+      const response = await axios.post(endpoint, formData);
 
       if (response.data.token) {
         // Use AuthContext login method
@@ -41,9 +47,9 @@ const Login = ({ userType = 'customer' }) => {
         login(userData);
 
         // Show success message
-        alert(`Welcome ${response.data.username}! Login successful.`);
+        setSuccess(`Welcome back, ${response.data.username}!`);
 
-        // Redirect based on role
+        // Immediate redirect
         if (response.data.role === 'ADMIN') {
           navigate('/admin/dashboard');
         } else {
@@ -74,12 +80,12 @@ const Login = ({ userType = 'customer' }) => {
   };
 
   return (
-    <div className="auth-container d-flex align-items-center justify-content-center min-vh-100" style={{ paddingTop: '80px', paddingBottom: '40px' }}>
+    <div className="auth-container d-flex align-items-center justify-content-center min-vh-100">
       <div className="container">
         <div className="row justify-content-center">
           <div className="col-12 col-sm-10 col-md-8 col-lg-6 col-xl-5">
             <div className="card auth-card shadow-lg border-0" style={{ borderRadius: '20px', width: '100%', minWidth: '400px' }}>
-              <div className="card-body" style={{ padding: '2rem' }}>
+              <div className="card-body">
                 <div className="text-center mb-4">
                   <div className="mb-3">
                     <i className={`bi ${userType === 'admin' ? 'bi-shield-check' : 'bi-person-circle'} auth-icon text-primary pulse-animation`}
@@ -97,6 +103,13 @@ const Login = ({ userType = 'customer' }) => {
                   <div className="alert alert-danger border-0 text-center" role="alert" style={{ borderRadius: '10px' }}>
                     <i className="bi bi-exclamation-triangle me-2"></i>
                     {error}
+                  </div>
+                )}
+
+                {success && (
+                  <div className="alert alert-success border-0 text-center" role="alert" style={{ borderRadius: '10px' }}>
+                    <i className="bi bi-check-circle me-2"></i>
+                    {success}
                   </div>
                 )}
 

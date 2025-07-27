@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useAuth } from "../Context/AuthContext";
-import axios from "axios";
+import axios from "../axios";
+import { handleProductError, logError } from "../utils/errorHandler";
+import { showDetailedErrorToast, showSuccessToast } from "../utils/toast";
 
 const AddProduct = () => {
   const { user, getToken } = useAuth();
@@ -17,6 +19,7 @@ const AddProduct = () => {
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -60,47 +63,53 @@ const AddProduct = () => {
         new Blob([JSON.stringify(product)], { type: "application/json" })
       );
 
-      const response = await axios.post("http://localhost:8080/api/product", formData, {
+      const response = await axios.post("/product", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           "Authorization": `Bearer ${token}`
         },
       });
 
-      console.log("Product added successfully:", response.data);
-      alert("Product added successfully!");
-      
-      // Reset form
-      setProduct({
-        name: "",
-        brand: "",
-        description: "",
-        price: "",
-        category: "",
-        stockQuantity: "",
-        releaseDate: "",
-        productAvailable: false,
-      });
-      setImage(null);
+      setSuccess("Product added successfully!");
+      setError("");
+      showSuccessToast("Product added successfully!");
+
+      // Reset form after showing success message
+      setTimeout(() => {
+        setProduct({
+          name: "",
+          brand: "",
+          description: "",
+          price: "",
+          category: "",
+          stockQuantity: "",
+          releaseDate: "",
+          productAvailable: false,
+        });
+        setImage(null);
+        setSuccess("");
+      }, 2000);
       
     } catch (error) {
-      console.error("Error adding product:", error);
-      if (error.response?.status === 403) {
-        setError("Access denied. Only admins can add products.");
-      } else if (error.response?.status === 401) {
-        setError("Authentication failed. Please login again.");
-      } else {
-        setError(error.response?.data?.message || "Error adding product. Please try again.");
-      }
+      logError(error, 'AddProduct');
+
+      const errorMessage = handleProductError(error, 'add');
+      setError(errorMessage);
+
+      // Show detailed error toast
+      showDetailedErrorToast({
+        message: errorMessage,
+        details: error.response?.data || error.message,
+        status: error.response?.status
+      }, 'Add Product');
+
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="d-flex align-items-center justify-content-center min-vh-100" style={{ 
-      paddingTop: '80px', 
-      paddingBottom: '40px',
+    <div className="form-container" style={{
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
     }}>
       <div className="container">
@@ -124,11 +133,18 @@ const AddProduct = () => {
                   Add New Product
                 </h2>
               </div>
-              <div className="card-body" style={{ padding: '2rem' }}>
+              <div className="card-body">
                 {error && (
                   <div className="alert alert-danger border-0 text-center" role="alert" style={{ borderRadius: '10px' }}>
                     <i className="bi bi-exclamation-triangle me-2"></i>
                     {error}
+                  </div>
+                )}
+
+                {success && (
+                  <div className="alert alert-success border-0 text-center" role="alert" style={{ borderRadius: '10px' }}>
+                    <i className="bi bi-check-circle me-2"></i>
+                    {success}
                   </div>
                 )}
                 

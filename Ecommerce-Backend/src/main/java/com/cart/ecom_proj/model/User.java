@@ -49,6 +49,16 @@ public class User {
 
     private LocalDateTime updatedAt;
 
+    @Column(nullable = false)
+    private Long visitCount = 0L;
+
+    @Column(nullable = false)
+    private Long purchaseCount = 0L;
+
+    private LocalDateTime lastVisitAt;
+
+    private LocalDateTime lastPurchaseAt;
+
     public enum Role {
         CUSTOMER, ADMIN
     }
@@ -148,5 +158,37 @@ public class User {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Long getVisitCount() {
+        return visitCount;
+    }
+
+    public void setVisitCount(Long visitCount) {
+        this.visitCount = visitCount;
+    }
+
+    public Long getPurchaseCount() {
+        return purchaseCount;
+    }
+
+    public void setPurchaseCount(Long purchaseCount) {
+        this.purchaseCount = purchaseCount;
+    }
+
+    public LocalDateTime getLastVisitAt() {
+        return lastVisitAt;
+    }
+
+    public void setLastVisitAt(LocalDateTime lastVisitAt) {
+        this.lastVisitAt = lastVisitAt;
+    }
+
+    public LocalDateTime getLastPurchaseAt() {
+        return lastPurchaseAt;
+    }
+
+    public void setLastPurchaseAt(LocalDateTime lastPurchaseAt) {
+        this.lastPurchaseAt = lastPurchaseAt;
     }
 }

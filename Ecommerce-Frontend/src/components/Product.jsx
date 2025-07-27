@@ -2,12 +2,16 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useContext, useEffect } from "react";
 import { useState } from "react";
 import AppContext from "../Context/Context";
+import { useAuth } from "../Context/AuthContext";
 import axios from "../axios";
 import UpdateProduct from "./UpdateProduct";
+import { showSuccessToast, showDetailedErrorToast } from "../utils/toast";
+import { handleCartError, handleProductError, logError } from "../utils/errorHandler";
 const Product = () => {
   const { id } = useParams();
   const { data, addToCart, removeFromCart, cart, refreshData } =
     useContext(AppContext);
+  const { isAdmin } = useAuth();
   const [product, setProduct] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
   const navigate = useNavigate();
@@ -16,7 +20,7 @@ const Product = () => {
     const fetchProduct = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:8080/api/product/${id}`
+          `/product/${id}`
         );
         setProduct(response.data);
         if (response.data.imageName) {
@@ -29,7 +33,7 @@ const Product = () => {
 
     const fetchImage = async () => {
       const response = await axios.get(
-        `http://localhost:8080/api/product/${id}/image`,
+        `/product/${id}/image`,
         { responseType: "blob" }
       );
       setImageUrl(URL.createObjectURL(response.data));
@@ -40,14 +44,20 @@ const Product = () => {
 
   const deleteProduct = async () => {
     try {
-      await axios.delete(`http://localhost:8080/api/product/${id}`);
+      await axios.delete(`/product/${id}`);
       removeFromCart(id);
       console.log("Product deleted successfully");
-      alert("Product deleted successfully");
+      showSuccessToast("Product deleted successfully");
       refreshData();
       navigate("/");
     } catch (error) {
-      console.error("Error deleting product:", error);
+      logError(error, 'Product - Delete');
+      const errorMessage = handleProductError(error, 'delete');
+      showDetailedErrorToast({
+        message: errorMessage,
+        details: error.response?.data || error.message,
+        status: error.response?.status
+      }, 'Delete Product');
     }
   };
 
@@ -56,19 +66,39 @@ const Product = () => {
   };
 
   const handlAddToCart = () => {
-    addToCart(product);
-    alert("Product added to cart");
+    try {
+      const result = addToCart(product);
+
+      if (result.success) {
+        showSuccessToast(result.message);
+      } else {
+        showDetailedErrorToast({
+          message: result.message,
+          details: `Product: ${product.name}, Stock: ${product.stockQuantity}`
+        }, 'Add to Cart');
+      }
+    } catch (error) {
+      logError(error, 'Product - Add to Cart');
+      const errorMessage = handleCartError(error, 'add item to cart');
+      showDetailedErrorToast({
+        message: errorMessage,
+        details: error.message
+      }, 'Add to Cart');
+    }
   };
   if (!product) {
     return (
-      <h2 className="text-center" style={{ padding: "10rem" }}>
-        Loading...
-      </h2>
+      <div className="page-container">
+        <div className="content-wrapper text-center">
+          <h2>Loading...</h2>
+        </div>
+      </div>
     );
   }
   return (
-    <>
-      <div className="containers" style={{ display: "flex" }}>
+    <div className="page-container">
+      <div className="content-wrapper">
+        <div className="containers" style={{ display: "flex" }}>
         <img
           className="left-column-img"
           src={imageUrl}
@@ -100,26 +130,26 @@ const Product = () => {
 
           <div className="product-price">
             <span style={{ fontSize: "2rem", fontWeight: "bold" }}>
-              {"$" + product.price}
+              ₹{product.price.toLocaleString('en-IN')}
             </span>
             <button
               className={`cart-btn ${
-                !product.productAvailable ? "disabled-btn" : ""
+                !product.productAvailable || product.stockQuantity === 0 ? "disabled-btn" : ""
               }`}
               onClick={handlAddToCart}
-              disabled={!product.productAvailable}
+              disabled={!product.productAvailable || product.stockQuantity === 0}
               style={{
                 padding: "1rem 2rem",
                 fontSize: "1rem",
-                backgroundColor: "#007bff",
+                backgroundColor: product.productAvailable && product.stockQuantity > 0 ? "#007bff" : "#6c757d",
                 color: "white",
                 border: "none",
                 borderRadius: "5px",
-                cursor: "pointer",
+                cursor: product.productAvailable && product.stockQuantity > 0 ? "pointer" : "not-allowed",
                 marginBottom: "1rem",
               }}
             >
-              {product.productAvailable ? "Add to cart" : "Out of Stock"}
+              {product.productAvailable && product.stockQuantity > 0 ? "Add to cart" : "Out of Stock"}
             </button>
             <h6 style={{ marginBottom: "1rem" }}>
               Stock Available :{" "}
@@ -129,44 +159,47 @@ const Product = () => {
             </h6>
           
           </div>
-          <div className="update-button" style={{ display: "flex", gap: "1rem" }}>
-            <button
-              className="btn btn-primary"
-              type="button"
-              onClick={handleEditClick}
-              style={{
-                padding: "1rem 2rem",
-                fontSize: "1rem",
-                backgroundColor: "#007bff",
-                color: "white",
-                border: "none",
-                borderRadius: "5px",
-                cursor: "pointer",
-              }}
-            >
-              Update
-            </button>
-            {/* <UpdateProduct product={product} onUpdate={handleUpdate} /> */}
-            <button
-              className="btn btn-primary"
-              type="button"
-              onClick={deleteProduct}
-              style={{
-                padding: "1rem 2rem",
-                fontSize: "1rem",
-                backgroundColor: "#dc3545",
-                color: "white",
-                border: "none",
-                borderRadius: "5px",
-                cursor: "pointer",
-              }}
-            >
-              Delete
-            </button>
-          </div>
+          {/* Admin-only buttons */}
+          {isAdmin() && (
+            <div className="update-button" style={{ display: "flex", gap: "1rem" }}>
+              <button
+                className="btn btn-primary"
+                type="button"
+                onClick={handleEditClick}
+                style={{
+                  padding: "1rem 2rem",
+                  fontSize: "1rem",
+                  backgroundColor: "#007bff",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                }}
+              >
+                Update
+              </button>
+              <button
+                className="btn btn-danger"
+                type="button"
+                onClick={deleteProduct}
+                style={{
+                  padding: "1rem 2rem",
+                  fontSize: "1rem",
+                  backgroundColor: "#dc3545",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

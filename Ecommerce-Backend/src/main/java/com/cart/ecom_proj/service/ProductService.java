@@ -1,5 +1,6 @@
 package com.cart.ecom_proj.service;
 
+import com.cart.ecom_proj.dto.ProductListResponse;
 import com.cart.ecom_proj.model.Product;
 import com.cart.ecom_proj.repo.ProductRepo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +24,14 @@ public class ProductService {
         return repo.findAll();
     }
 
-    public Product getProductById(int id){
+    public List<ProductListResponse> getAllProductsOptimized() {
+        List<Product> products = repo.findAll();
+        return products.stream()
+                .map(ProductListResponse::new)
+                .toList();
+    }
+
+    public Product getProductById(Long id){
         return repo.findById(id).orElse(null);
     }
 
@@ -39,7 +47,7 @@ public class ProductService {
         return repo.save(product);
     }
 
-    public Product updateProduct(int id, Product product, MultipartFile imageFile) throws IOException {
+    public Product updateProduct(Long id, Product product, MultipartFile imageFile) throws IOException {
         // Get existing product to delete old image if needed
         Product existingProduct = repo.findById(id).orElse(null);
 
@@ -67,7 +75,7 @@ public class ProductService {
         return repo.save(product);
     }
 
-    public void deleteProduct(int id) {
+    public void deleteProduct(Long id) {
         // Delete associated image file before deleting product
         Product product = repo.findById(id).orElse(null);
         if (product != null && product.getImagePath() != null) {
@@ -85,7 +93,7 @@ public class ProductService {
         return repo.searchProducts(keyword);
     }
 
-    public byte[] getProductImage(int productId) throws IOException {
+    public byte[] getProductImage(Long productId) throws IOException {
         Product product = repo.findById(productId).orElse(null);
         if (product != null && product.getImagePath() != null) {
             return fileStorageService.loadFileAsBytes(product.getImagePath());

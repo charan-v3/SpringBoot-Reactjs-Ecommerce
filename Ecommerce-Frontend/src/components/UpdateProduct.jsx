@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
+import axios from "../axios";
+import { handleProductError, logError } from "../utils/errorHandler";
+import { showDetailedErrorToast, showSuccessToast } from "../utils/toast";
 
 const UpdateProduct = () => {
   const { id } = useParams();
@@ -22,13 +24,13 @@ const UpdateProduct = () => {
     const fetchProduct = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:8080/api/product/${id}`
+          `/product/${id}`
         );
 
         setProduct(response.data);
       
         const responseImage = await axios.get(
-          `http://localhost:8080/api/product/${id}/image`,
+          `/product/${id}/image`,
           { responseType: "blob" }
         );
        const imageFile = await converUrlToFile(responseImage.data,response.data.imageName)
@@ -67,19 +69,26 @@ const UpdateProduct = () => {
 
   console.log("formData : ", updatedProduct)
     axios
-      .put(`http://localhost:8080/api/product/${id}`, updatedProduct, {
+      .put(`/product/${id}`, updatedProduct, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       })
       .then((response) => {
         console.log("Product updated successfully:", updatedProduct);
-        alert("Product updated successfully!");
+        showSuccessToast("Product updated successfully!");
       })
       .catch((error) => {
-        console.error("Error updating product:", error);
-        console.log("product unsuccessfull update",updateProduct)
-        alert("Failed to update product. Please try again.");
+        logError(error, 'UpdateProduct');
+
+        const errorMessage = handleProductError(error, 'update');
+
+        // Show detailed error toast
+        showDetailedErrorToast({
+          message: errorMessage,
+          details: error.response?.data || error.message,
+          status: error.response?.status
+        }, 'Update Product');
       });
   };
  
@@ -98,8 +107,9 @@ const UpdateProduct = () => {
   
 
   return (
-    <div className="update-product-container" >
-      <div className="center-container"style={{marginTop:"7rem"}}>
+    <div className="update-product-container">
+      <div className="content-wrapper">
+        <div className="center-container">
         <h1>Update Product</h1>
         <form className="row g-3 pt-1" onSubmit={handleSubmit}>
           <div className="col-md-6">
@@ -238,6 +248,7 @@ const UpdateProduct = () => {
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );

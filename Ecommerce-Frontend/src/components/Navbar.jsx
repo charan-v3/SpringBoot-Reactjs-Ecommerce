@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../Context/AuthContext";
-import axios from "axios";
+import axios from "../axios";
 
 const Navbar = ({ onSelectCategory, onSearch }) => {
-  const { isAuthenticated, isAdmin, logout, user } = useAuth();
+  const { isAuthenticated, isAdmin, isCustomer, logout, user } = useAuth();
   const navigate = useNavigate();
 
   const getInitialTheme = () => {
@@ -18,17 +18,27 @@ const Navbar = ({ onSelectCategory, onSearch }) => {
   const [noResults, setNoResults] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [showSearchResults,setShowSearchResults] = useState(false)
+  const [scrolled, setScrolled] = useState(false);
+
   useEffect(() => {
     fetchData();
+
+    // Add scroll listener for navbar effect
+    const handleScroll = () => {
+      const isScrolled = window.scrollY > 10;
+      setScrolled(isScrolled);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const fetchData = async (value) => {
     try {
-      const response = await axios.get("http://localhost:8080/api/products");
+      const response = await axios.get("/products");
       setSearchResults(response.data);
-      console.log(response.data);
     } catch (error) {
-      console.error("Error fetching data:", error);
+      // Handle error silently
     }
   };
 
@@ -38,7 +48,7 @@ const Navbar = ({ onSelectCategory, onSearch }) => {
       setShowSearchResults(true)
     try {
       const response = await axios.get(
-        `http://localhost:8080/api/products/search?keyword=${value}`
+        `/products/search?keyword=${value}`
       );
       setSearchResults(response.data);
       setNoResults(response.data.length === 0);
@@ -113,9 +123,10 @@ const Navbar = ({ onSelectCategory, onSearch }) => {
   return (
     <>
       <header>
-        <nav className="navbar navbar-expand-lg fixed-top">
+        <nav className={`navbar navbar-expand-lg fixed-top ${scrolled ? 'scrolled' : ''}`}>
           <div className="container-fluid">
             <a className="navbar-brand" href="/">
+              <i className="bi bi-lightning-charge-fill me-2"></i>
               Ekart
             </a>
             <button
@@ -172,6 +183,32 @@ const Navbar = ({ onSelectCategory, onSearch }) => {
                   </ul>
                 </li>
 
+                {isAuthenticated() && (
+                  <li className="nav-item dropdown">
+                    <a className="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                      <i className="bi bi-bag-check me-1"></i>
+                      Orders
+                    </a>
+                    <ul className="dropdown-menu">
+                      {isCustomer() && (
+                        <li><Link className="dropdown-item" to="/orders">
+                          <i className="bi bi-clock-history me-2"></i>
+                          My Order History
+                        </Link></li>
+                      )}
+                      {isAdmin() && (
+                        <li><Link className="dropdown-item" to="/admin/orders">
+                          <i className="bi bi-gear me-2"></i>
+                          Manage All Orders
+                        </Link></li>
+                      )}
+                      <li><Link className="dropdown-item" to="/track-order">
+                        <i className="bi bi-geo-alt me-2"></i>
+                        Track Order
+                      </Link></li>
+                    </ul>
+                  </li>
+                )}
                 <li className="nav-item"></li>
               </ul>
               <button className="theme-btn" onClick={() => toggleTheme()}>
@@ -201,53 +238,107 @@ const Navbar = ({ onSelectCategory, onSearch }) => {
                   </div>
                 ) : (
                   <div className="d-flex align-items-center me-3">
-                    <span className="navbar-text me-3">
-                      Welcome, {user?.username} ({user?.role})
-                    </span>
-                    <button className="btn btn-outline-danger" onClick={handleLogout}>
-                      Logout
-                    </button>
+                    <div className="dropdown me-3">
+                      <button
+                        className="btn btn-outline-primary dropdown-toggle d-flex align-items-center"
+                        type="button"
+                        data-bs-toggle="dropdown"
+                      >
+                        <i className={`bi ${user?.role === 'ADMIN' ? 'bi-shield-check' : 'bi-person-circle'} me-2`}></i>
+                        {user?.username}
+                      </button>
+                      <ul className="dropdown-menu">
+                        <li>
+                          <Link className="dropdown-item" to="/profile">
+                            <i className="bi bi-person me-2"></i>My Profile
+                          </Link>
+                        </li>
+                        {isAdmin() && (
+                          <>
+                            <li>
+                              <Link className="dropdown-item" to="/admin/dashboard">
+                                <i className="bi bi-speedometer2 me-2"></i>Admin Dashboard
+                              </Link>
+                            </li>
+                            <li>
+                              <Link className="dropdown-item" to="/admin/orders">
+                                <i className="bi bi-bag-check me-2"></i>Manage Orders
+                              </Link>
+                            </li>
+                          </>
+                        )}
+                        {isCustomer() && (
+                          <li>
+                            <Link className="dropdown-item" to="/orders">
+                              <i className="bi bi-bag me-2"></i>My Orders
+                            </Link>
+                          </li>
+                        )}
+                        <li><hr className="dropdown-divider" /></li>
+                        <li>
+                          <button className="dropdown-item text-danger" onClick={handleLogout}>
+                            <i className="bi bi-box-arrow-right me-2"></i>Logout
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
                   </div>
                 )}
 
-                {/* Cart Link */}
+                {/* Enhanced Search */}
+                <div className="search-container me-3">
+                  <i className="bi bi-search search-icon"></i>
+                  <input
+                    className="search-input"
+                    type="search"
+                    placeholder="Search products..."
+                    aria-label="Search"
+                    value={input}
+                    onChange={(e) => handleChange(e.target.value)}
+                    onFocus={() => setSearchFocused(true)}
+                    onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+                  />
+                  {showSearchResults && (
+                    <ul className="list-group">
+                      {searchResults.length > 0 ? (
+                          searchResults.map((result) => (
+                            <li key={result.id} className="list-group-item">
+                              <Link
+                                to={`/product/${result.id}`}
+                                className="search-result-link d-flex align-items-center text-decoration-none"
+                                onClick={() => {
+                                  setInput('');
+                                  setShowSearchResults(false);
+                                }}
+                              >
+                                <i className="bi bi-box-seam me-2 text-muted"></i>
+                                <div>
+                                  <div className="fw-semibold">{result.name}</div>
+                                  <small className="text-muted">{result.brand} • ${result.price}</small>
+                                </div>
+                              </Link>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="list-group-item">
+                            <div className="text-center text-muted">
+                              <i className="bi bi-search me-2"></i>
+                              No products found
+                            </div>
+                          </li>
+                        )}
+                    </ul>
+                  )}
+                </div>
+
+                {/* Enhanced Cart Link */}
                 <div className="cart me-3">
-                  <Link to="/cart" className="nav-link text-dark">
-                    <i className="bi bi-cart me-2" style={{ display: "flex", alignItems: "center" }}>
-                      Cart
-                    </i>
+                  <Link to="/cart" className="nav-link">
+                    <i className="bi bi-cart3"></i>
+                    Cart
                   </Link>
                 </div>
-                {/* <form className="d-flex" role="search" onSubmit={handleSearch} id="searchForm"> */}
-                <input
-                  className="form-control me-2"
-                  type="search"
-                  placeholder="Search"
-                  aria-label="Search"
-                  value={input}
-                  onChange={(e) => handleChange(e.target.value)}
-                  onFocus={() => setSearchFocused(true)} // Set searchFocused to true when search bar is focused
-                  onBlur={() => setSearchFocused(false)} // Set searchFocused to false when search bar loses focus
-                />
-                {showSearchResults && (
-                  <ul className="list-group">
-                    {searchResults.length > 0 ? (  
-                        searchResults.map((result) => (
-                          <li key={result.id} className="list-group-item">
-                            <a href={`/product/${result.id}`} className="search-result-link">
-                            <span>{result.name}</span>
-                            </a>
-                          </li>
-                        ))
-                    ) : (
-                      noResults && (
-                        <p className="no-results-message">
-                          No Prouduct with such Name
-                        </p>
-                      )
-                    )}
-                  </ul>
-                )}
+
                 {/* <button
                   className="btn btn-outline-success"
                   onClick={handleSearch}

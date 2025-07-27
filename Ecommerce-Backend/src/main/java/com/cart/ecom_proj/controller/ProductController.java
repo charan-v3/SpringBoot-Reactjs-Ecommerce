@@ -1,5 +1,6 @@
 package com.cart.ecom_proj.controller;
 
+import com.cart.ecom_proj.dto.ProductListResponse;
 import com.cart.ecom_proj.model.Product;
 import com.cart.ecom_proj.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,12 +23,33 @@ public class ProductController {
     private ProductService service;
 
     @GetMapping("/products")
-    public ResponseEntity<List<Product>> getAllProducts(){
-        return new ResponseEntity<>(service.getAllProducts(), HttpStatus.OK);
+    public ResponseEntity<List<ProductListResponse>> getAllProducts(){
+        long startTime = System.currentTimeMillis();
+        System.out.println("🔍 Fetching all products (optimized)...");
+
+        List<ProductListResponse> products = service.getAllProductsOptimized();
+
+        long endTime = System.currentTimeMillis();
+        System.out.println("✅ Products fetched: " + products.size() + " products in " + (endTime - startTime) + "ms");
+
+        return new ResponseEntity<>(products, HttpStatus.OK);
+    }
+
+    @GetMapping("/products/fast")
+    public ResponseEntity<List<ProductListResponse>> getAllProductsFast(){
+        long startTime = System.currentTimeMillis();
+        System.out.println("🚀 Fetching products (fast endpoint)...");
+
+        List<ProductListResponse> products = service.getAllProductsOptimized();
+
+        long endTime = System.currentTimeMillis();
+        System.out.println("⚡ Products fetched (fast): " + products.size() + " products in " + (endTime - startTime) + "ms");
+
+        return new ResponseEntity<>(products, HttpStatus.OK);
     }
 
     @GetMapping("/product/{id}")
-    public ResponseEntity<Product> getProduct(@PathVariable int id){
+    public ResponseEntity<Product> getProduct(@PathVariable Long id){
 
         Product product = service.getProductById(id);
 
@@ -51,7 +73,7 @@ public class ProductController {
     }
 
     @GetMapping("product/{productId}/image")
-    public ResponseEntity getImageByProductId(@PathVariable int productId){
+    public ResponseEntity getImageByProductId(@PathVariable Long productId){
         try {
             Product product = service.getProductById(productId);
             if (product == null) {
@@ -72,7 +94,7 @@ public class ProductController {
     }
 
     @PutMapping("/product/{id}")
-    public ResponseEntity<String> updateProduct(@PathVariable int id,
+    public ResponseEntity<String> updateProduct(@PathVariable Long id,
                                                 @RequestPart Product product,
                                                 @RequestPart MultipartFile imageFile){
 
@@ -90,7 +112,7 @@ public class ProductController {
     }
 
     @DeleteMapping("/product/{id}")
-    public ResponseEntity<String> deleteProduct(@PathVariable int id){
+    public ResponseEntity<String> deleteProduct(@PathVariable Long id){
         Product product = service.getProductById(id);
         if(product != null) {
             service.deleteProduct(id);

@@ -2,19 +2,31 @@ import "./App.css";
 import React, { useState, useEffect } from "react";
 import Home from "./components/Home";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
+import ScrollToTop from "./components/ScrollToTop";
 import Cart from "./components/Cart";
 import AddProduct from "./components/AddProduct";
 import Product from "./components/Product";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
+import OrderHistory from "./components/OrderHistory";
+import OrderTracking from "./components/OrderTracking";
+import OrderSuccess from "./components/OrderSuccess";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider } from "./Context/Context";
 import { AuthProvider } from "./Context/AuthContext";
 import UpdateProduct from "./components/UpdateProduct";
+import AdminDashboard from "./components/AdminDashboard";
+import UserProfile from "./components/UserProfile";
+import AdminVerificationDashboard from "./components/AdminVerificationDashboard";
+import CustomerAnalytics from "./components/CustomerAnalytics";
+import OrderManagement from "./components/OrderManagement";
+import OrderDetail from "./components/OrderDetail";
+import RoleRedirect from "./components/RoleRedirect";
+import ErrorBoundary from "./components/ErrorBoundary";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
-import 'bootstrap/dist/css/bootstrap.min.css';
 
 
 function App() {
@@ -41,11 +53,12 @@ function App() {
   };
 
   return (
-    <AuthProvider>
-      <AppProvider>
-        <BrowserRouter>
-          <Navbar onSelectCategory={handleCategorySelect} />
-          <Routes>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppProvider>
+          <BrowserRouter>
+            <Navbar onSelectCategory={handleCategorySelect} />
+            <Routes>
             {/* Public Routes */}
             <Route path="/customer/login" element={<Login userType="customer" />} />
             <Route path="/admin/login" element={<Login userType="admin" />} />
@@ -62,12 +75,21 @@ function App() {
             <Route path="/product" element={<Product />} />
             <Route path="/product/:id" element={<Product />} />
 
-            {/* Protected Routes - Require Authentication */}
+            {/* Public Routes - Core ecommerce functionality */}
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/order-success" element={<OrderSuccess />} />
+            <Route path="/track-order" element={<OrderTracking />} />
+
+            {/* Orders Route - Role-based handling */}
             <Route
-              path="/cart"
+              path="/orders"
               element={
-                <ProtectedRoute>
-                  <Cart />
+                <ProtectedRoute requireAuth={true}>
+                  <RoleRedirect showAdminInfo={true}>
+                    <ProtectedRoute requireCustomer={true}>
+                      <OrderHistory />
+                    </ProtectedRoute>
+                  </RoleRedirect>
                 </ProtectedRoute>
               }
             />
@@ -95,41 +117,86 @@ function App() {
               path="/admin/dashboard"
               element={
                 <ProtectedRoute requireAdmin={true}>
-                  <div className="container mt-4">
-                    <div className="row">
-                      <div className="col-12">
-                        <div className="alert alert-success" role="alert">
-                          <h4 className="alert-heading">
-                            <i className="bi bi-shield-check me-2"></i>
-                            Admin Dashboard
-                          </h4>
-                          <p>Welcome to the admin dashboard! You have full access to manage products and view all system features.</p>
-                          <hr />
-                          <div className="d-flex gap-3">
-                            <a href="/add_product" className="btn btn-primary">
-                              <i className="bi bi-plus-circle me-2"></i>Add New Product
-                            </a>
-                            <a href="/" className="btn btn-outline-primary">
-                              <i className="bi bi-grid me-2"></i>View All Products
-                            </a>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <Home addToCart={addToCart} selectedCategory={selectedCategory} />
-                  </div>
+                  <AdminDashboard />
                 </ProtectedRoute>
               }
             />
+
+            {/* User Profile Routes - Optional login */}
+            <Route path="/profile" element={<UserProfile />} />
+
+            {/* Admin Verification Dashboard */}
+            <Route
+              path="/admin/verification"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <AdminVerificationDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Customer Analytics */}
+            <Route
+              path="/admin/customer-analytics"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <CustomerAnalytics />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Order Management */}
+            <Route
+              path="/orders"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <OrderManagement />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Order Detail - Admin */}
+            <Route
+              path="/admin/order/:orderId"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <OrderDetail />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Order Detail - Customer */}
+            <Route
+              path="/order/:orderId"
+              element={
+                <ProtectedRoute requireCustomer={true}>
+                  <OrderDetail />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Individual Customer Analytics */}
+            <Route
+              path="/analytics/customer/:customerId"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <CustomerAnalytics />
+                </ProtectedRoute>
+              }
+            />
+
+
 
             {/* Unauthorized Route */}
             <Route
               path="/unauthorized"
               element={
-                <div className="container mt-5 text-center">
-                  <h2>Unauthorized Access</h2>
-                  <p>You don't have permission to access this page.</p>
-                  <a href="/" className="btn btn-primary">Go Home</a>
+                <div className="page-container">
+                  <div className="content-wrapper text-center">
+                    <h2>Unauthorized Access</h2>
+                    <p>You don't have permission to access this page.</p>
+                    <a href="/" className="btn btn-primary">Go Home</a>
+                  </div>
                 </div>
               }
             />
@@ -137,9 +204,12 @@ function App() {
             {/* Redirect unknown routes to home */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <Footer />
+          <ScrollToTop />
         </BrowserRouter>
       </AppProvider>
     </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

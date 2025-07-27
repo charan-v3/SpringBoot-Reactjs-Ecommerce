@@ -27,6 +27,9 @@ public class CustomerService {
     private CustomerActivityRepo customerActivityRepo;
 
     @Autowired
+    private VisitTrackingService visitTrackingService;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     public Customer createCustomer(SignupRequest signupRequest) {
@@ -105,14 +108,19 @@ public class CustomerService {
         Optional<Customer> customerOpt = customerRepo.findById(customerId);
         if (customerOpt.isPresent()) {
             Customer customer = customerOpt.get();
-            
-            // Update customer visit count and last visit time
-            customer.setVisitCount(customer.getVisitCount() + 1);
-            customer.setLastVisitAt(LocalDateTime.now());
-            customer.setUpdatedAt(LocalDateTime.now());
-            customerRepo.save(customer);
-            
-            // Create visit activity record
+
+            // Check if we should track this visit (avoid duplicate counting in same session)
+            boolean shouldTrack = visitTrackingService.shouldTrackVisit(sessionId, customerId);
+
+            if (shouldTrack) {
+                // Update customer visit count and last visit time
+                customer.setVisitCount(customer.getVisitCount() + 1);
+                customer.setLastVisitAt(LocalDateTime.now());
+                customer.setUpdatedAt(LocalDateTime.now());
+                customerRepo.save(customer);
+            }
+
+            // Always create activity record for detailed tracking
             CustomerActivity activity = new CustomerActivity();
             activity.setCustomer(customer);
             activity.setActivityType(CustomerActivity.ActivityType.PRODUCT_VIEW);
@@ -122,7 +130,7 @@ public class CustomerService {
             activity.setUserAgent(userAgent);
             activity.setPageUrl(pageUrl);
             activity.setReferrer(referrer);
-            
+
             customerActivityRepo.save(activity);
         }
     }
@@ -221,7 +229,7 @@ public class CustomerService {
 
             // Top customers by visits - using safe DTO
             List<CustomerAnalyticsDto> topVisitors = customers.stream()
-                    .sorted((c1, c2) -> Integer.compare(c2.getVisitCount(), c1.getVisitCount()))
+                    .sorted((c1, c2) -> Long.compare(c2.getVisitCount(), c1.getVisitCount()))
                     .limit(10)
                     .map(CustomerAnalyticsDto::new)
                     .toList();
@@ -229,7 +237,7 @@ public class CustomerService {
 
             // Top customers by purchases - using safe DTO
             List<CustomerAnalyticsDto> topBuyers = customers.stream()
-                    .sorted((c1, c2) -> Integer.compare(c2.getPurchaseCount(), c1.getPurchaseCount()))
+                    .sorted((c1, c2) -> Long.compare(c2.getPurchaseCount(), c1.getPurchaseCount()))
                     .limit(10)
                     .map(CustomerAnalyticsDto::new)
                     .toList();

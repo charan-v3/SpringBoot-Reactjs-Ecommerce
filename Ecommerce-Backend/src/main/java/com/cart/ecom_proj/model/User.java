@@ -161,19 +161,19 @@ public class User {
     }
 
     public Long getVisitCount() {
-        return visitCount;
+        return visitCount != null ? visitCount : 0L;
     }
 
     public void setVisitCount(Long visitCount) {
-        this.visitCount = visitCount;
+        this.visitCount = visitCount != null ? visitCount : 0L;
     }
 
     public Long getPurchaseCount() {
-        return purchaseCount;
+        return purchaseCount != null ? purchaseCount : 0L;
     }
 
     public void setPurchaseCount(Long purchaseCount) {
-        this.purchaseCount = purchaseCount;
+        this.purchaseCount = purchaseCount != null ? purchaseCount : 0L;
     }
 
     public LocalDateTime getLastVisitAt() {

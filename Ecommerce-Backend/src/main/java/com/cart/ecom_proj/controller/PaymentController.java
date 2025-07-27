@@ -94,9 +94,8 @@ public class PaymentController {
             if (isValidSignature) {
                 // Update order status to paid
                 // orderService.updateOrderPaymentStatus(orderNumber, "PAID", razorpayPaymentId);
-                
-                // Track customer purchase
-                customerService.trackCustomerPurchase(customerId, orderNumber, null);
+
+                // Note: Purchase tracking is now handled in OrderService when order is created
 
                 Map<String, Object> response = new HashMap<>();
                 response.put("status", "success");
@@ -151,10 +150,7 @@ public class PaymentController {
             paymentRecord.put("timestamp", timestamp);
             paymentRecord.put("upiId", "9976656631@axl");
 
-            // Track customer purchase if authenticated
-            if (customerId != null) {
-                customerService.trackCustomerPurchase(customerId, orderNumber, null);
-            }
+            // Note: Purchase tracking is now handled in OrderService when order is created
 
             Map<String, Object> response = new HashMap<>();
             response.put("status", "success");

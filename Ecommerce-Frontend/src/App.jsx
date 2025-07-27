@@ -13,7 +13,7 @@ import OrderHistory from "./components/OrderHistory";
 import OrderTracking from "./components/OrderTracking";
 import OrderSuccess from "./components/OrderSuccess";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AppProvider } from "./Context/Context";
 import { AuthProvider } from "./Context/AuthContext";
 import UpdateProduct from "./components/UpdateProduct";
@@ -26,11 +26,27 @@ import TestOrderManagement from "./components/TestOrderManagement";
 import OrderDetail from "./components/OrderDetail";
 import RoleRedirect from "./components/RoleRedirect";
 import ErrorBoundary from "./components/ErrorBoundary";
+import analyticsTracker from "./utils/analyticsTracker";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
+// Component to track page visits
+function PageTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    // Track page visit when location changes
+    analyticsTracker.trackPageVisit(location.pathname + location.search);
+  }, [location]);
+
+  return null;
+}
 
 function App() {
+  useEffect(() => {
+    // Setup auto-tracking when app loads
+    analyticsTracker.setupAutoTracking();
+  }, []);
   const [cart, setCart] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("");
 
@@ -58,6 +74,7 @@ function App() {
       <AuthProvider>
         <AppProvider>
           <BrowserRouter>
+            <PageTracker />
             <Navbar onSelectCategory={handleCategorySelect} />
             <Routes>
             {/* Public Routes */}

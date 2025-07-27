@@ -23,6 +23,7 @@ com\cart\ecom_proj\config\CorsConfig.class
 com\cart\ecom_proj\repo\CartItemRepo.class
 com\cart\ecom_proj\controller\PaymentController.class
 com\cart\ecom_proj\dto\OrderRequest.class
+com\cart\ecom_proj\service\VisitTrackingService.class
 com\cart\ecom_proj\repo\UserRepo.class
 com\cart\ecom_proj\util\JwtUtil.class
 com\cart\ecom_proj\repo\OrderRepo.class
@@ -30,6 +31,7 @@ com\cart\ecom_proj\model\Customer.class
 com\cart\ecom_proj\model\CustomerActivity.class
 com\cart\ecom_proj\config\SecurityConfig.class
 com\cart\ecom_proj\service\OrderService.class
+com\cart\ecom_proj\controller\AnalyticsTrackingController.class
 com\cart\ecom_proj\repo\AdminRepo.class
 com\cart\ecom_proj\service\UserService.class
 com\cart\ecom_proj\repo\OrderItemRepo.class

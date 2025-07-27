@@ -7,6 +7,7 @@ import RazorpayPayment from "./RazorpayPayment";
 import { Button } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { showSuccessToast, showErrorToast } from "../utils/toast";
+import analyticsTracker from "../utils/analyticsTracker";
 
 const Cart = () => {
   const { cart, removeFromCart, clearCart, updateCartItemQuantity } = useContext(AppContext);
@@ -124,6 +125,9 @@ const Cart = () => {
     removeFromCart(itemId);
     const newCartItems = cartItems.filter((item) => item.id !== itemId);
     setCartItems(newCartItems);
+
+    // Track remove from cart activity
+    analyticsTracker.trackRemoveFromCart(itemId);
   };
 
   const handleCheckout = async (checkoutData) => {

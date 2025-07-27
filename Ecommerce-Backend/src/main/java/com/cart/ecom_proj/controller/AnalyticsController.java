@@ -187,10 +187,10 @@ public class AnalyticsController {
                                 result = c1.getEmail().compareToIgnoreCase(c2.getEmail());
                                 break;
                             case "visitcount":
-                                result = Integer.compare(c1.getVisitCount(), c2.getVisitCount());
+                                result = Integer.compare(Math.toIntExact(c1.getVisitCount()), Math.toIntExact(c2.getVisitCount()));
                                 break;
                             case "purchasecount":
-                                result = Integer.compare(c1.getPurchaseCount(), c2.getPurchaseCount());
+                                result = Integer.compare(Math.toIntExact(c1.getPurchaseCount()), Math.toIntExact(c2.getPurchaseCount()));
                                 break;
                             case "createdat":
                                 result = c1.getCreatedAt().compareTo(c2.getCreatedAt());

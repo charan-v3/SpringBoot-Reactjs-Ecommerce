@@ -1,2 +1,3 @@
 com\cart\ecom_proj\OrderSecurityTest.class
 com\cart\ecom_proj\EcomProjApplicationTests.class
+com\cart\ecom_proj\service\VisitPurchaseTrackingTest.class

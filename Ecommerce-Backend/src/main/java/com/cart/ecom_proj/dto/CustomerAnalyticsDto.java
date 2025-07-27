@@ -8,8 +8,8 @@ public class CustomerAnalyticsDto {
     private String email;
     private String firstName;
     private String lastName;
-    private int visitCount;
-    private int purchaseCount;
+    private Long visitCount;
+    private Long purchaseCount;
     
     public CustomerAnalyticsDto() {}
     
@@ -64,19 +64,19 @@ public class CustomerAnalyticsDto {
         this.lastName = lastName;
     }
     
-    public int getVisitCount() {
+    public Long getVisitCount() {
         return visitCount;
     }
-    
-    public void setVisitCount(int visitCount) {
+
+    public void setVisitCount(Long visitCount) {
         this.visitCount = visitCount;
     }
-    
-    public int getPurchaseCount() {
+
+    public Long getPurchaseCount() {
         return purchaseCount;
     }
-    
-    public void setPurchaseCount(int purchaseCount) {
+
+    public void setPurchaseCount(Long purchaseCount) {
         this.purchaseCount = purchaseCount;
     }
 }

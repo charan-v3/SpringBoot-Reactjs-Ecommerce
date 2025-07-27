@@ -1,5 +1,6 @@
 import axios from "../axios";
 import { useState, useEffect, createContext } from "react";
+import analyticsTracker from "../utils/analyticsTracker";
 
 const AppContext = createContext({
   data: [],
@@ -47,6 +48,9 @@ export const AppProvider = ({ children }) => {
       setCart(updatedCart);
       localStorage.setItem('cart', JSON.stringify(updatedCart));
 
+      // Track add to cart activity
+      analyticsTracker.trackAddToCart(product.id, 1);
+
       return {
         success: true,
         message: `Added to cart. Total: ${newQuantity} items`
@@ -63,6 +67,9 @@ export const AppProvider = ({ children }) => {
       const updatedCart = [...cart, { ...product, quantity: 1 }];
       setCart(updatedCart);
       localStorage.setItem('cart', JSON.stringify(updatedCart));
+
+      // Track add to cart activity for new product
+      analyticsTracker.trackAddToCart(product.id, 1);
 
       return {
         success: true,

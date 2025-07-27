@@ -38,6 +38,9 @@ public class OrderService {
     @Autowired
     private CustomerRepo customerRepo;
 
+    @Autowired
+    private CustomerService customerService;
+
     @Transactional
     public OrderResponse createOrder(Long customerId, OrderRequest orderRequest) {
         // Find customer (optional for guest orders)
@@ -107,6 +110,11 @@ public class OrderService {
 
         // Save order
         Order savedOrder = orderRepo.save(order);
+
+        // Track customer purchase if authenticated
+        if (customer != null) {
+            customerService.trackCustomerPurchase(customer.getId(), savedOrder.getOrderNumber(), null);
+        }
 
         return new OrderResponse(savedOrder);
     }

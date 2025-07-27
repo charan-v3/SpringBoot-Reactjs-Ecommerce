@@ -14,21 +14,31 @@ const OrderManagement = () => {
   const [updatingStatus, setUpdatingStatus] = useState({});
 
   useEffect(() => {
+    console.log('OrderManagement component mounted');
+    console.log('User:', user);
+    console.log('Is Admin:', isAdmin());
+
     if (!isAdmin()) {
-      navigate('/unauthorized');
+      console.log('Not admin, redirecting to home');
+      navigate('/');
       return;
     }
+    console.log('Admin confirmed, fetching orders');
     fetchOrders();
   }, [isAdmin, navigate]);
 
   const fetchOrders = async () => {
     try {
+      console.log('Fetching orders from /orders/admin/all');
       setLoading(true);
       const response = await axios.get('/orders/admin/all');
+      console.log('Orders fetched successfully:', response.data);
       setOrders(response.data);
     } catch (error) {
       console.error('Error fetching orders:', error);
-      setError('Failed to load orders');
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      setError('Failed to load orders: ' + (error.response?.data?.error || error.message));
     } finally {
       setLoading(false);
     }
@@ -36,12 +46,18 @@ const OrderManagement = () => {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
+      console.log('Frontend: Updating order status');
+      console.log('Order ID:', orderId);
+      console.log('New Status:', newStatus);
+
       setUpdatingStatus(prev => ({ ...prev, [orderId]: true }));
-      
-      await axios.put(`/orders/admin/${orderId}/status`, {
-        status: newStatus
-      });
-      
+
+      const payload = { status: newStatus };
+      console.log('Frontend: Sending payload:', payload);
+
+      const response = await axios.put(`/orders/admin/${orderId}/status`, payload);
+      console.log('Frontend: Status update response:', response.data);
+
       // Update the order in the local state
       setOrders(prevOrders =>
         prevOrders.map(order =>
@@ -50,10 +66,14 @@ const OrderManagement = () => {
             : order
         )
       );
-      
+
+      console.log('Frontend: Order status updated successfully');
+
     } catch (error) {
-      console.error('Error updating order status:', error);
-      setError('Failed to update order status');
+      console.error('Frontend: Error updating order status:', error);
+      console.error('Frontend: Error response:', error.response?.data);
+      console.error('Frontend: Error status:', error.response?.status);
+      setError('Failed to update order status: ' + (error.response?.data?.error || error.message));
     } finally {
       setUpdatingStatus(prev => ({ ...prev, [orderId]: false }));
     }
@@ -94,7 +114,7 @@ const OrderManagement = () => {
       case 'PROCESSING':
         return ['SHIPPED', 'CANCELLED'];
       case 'SHIPPED':
-        return ['OUT_FOR_DELIVERY', 'DELIVERED'];
+        return ['DELIVERED']; // Temporarily remove OUT_FOR_DELIVERY
       case 'OUT_FOR_DELIVERY':
         return ['DELIVERED'];
       case 'DELIVERED':
@@ -102,7 +122,7 @@ const OrderManagement = () => {
       case 'CANCELLED':
         return []; // No further status changes
       default:
-        return ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'];
+        return ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED']; // Temporarily remove OUT_FOR_DELIVERY
     }
   };
 
@@ -127,6 +147,10 @@ const OrderManagement = () => {
     return (
       <div className="page-container">
         <div className="content-wrapper text-center">
+          <div className="alert alert-info">
+            <h4>🎉 OrderManagement Component Loaded!</h4>
+            <p>The route is working correctly. Loading orders...</p>
+          </div>
           <div className="spinner-border" role="status">
             <span className="visually-hidden">Loading...</span>
           </div>
@@ -190,7 +214,6 @@ const OrderManagement = () => {
                     <option value="CONFIRMED">Confirmed</option>
                     <option value="PROCESSING">Processing</option>
                     <option value="SHIPPED">Shipped</option>
-                    <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
                     <option value="DELIVERED">Delivered</option>
                     <option value="CANCELLED">Cancelled</option>
                   </select>
@@ -211,7 +234,7 @@ const OrderManagement = () => {
 
           {/* Orders Summary */}
           <div className="row mb-4">
-            <div className="col-md-2">
+            <div className="col-md-3">
               <div className="card text-center">
                 <div className="card-body">
                   <h4 className="text-primary">{orders.length}</h4>
@@ -219,7 +242,7 @@ const OrderManagement = () => {
                 </div>
               </div>
             </div>
-            <div className="col-md-2">
+            <div className="col-md-3">
               <div className="card text-center">
                 <div className="card-body">
                   <h4 className="text-warning">{orders.filter(o => o.status === 'PENDING').length}</h4>
@@ -227,7 +250,7 @@ const OrderManagement = () => {
                 </div>
               </div>
             </div>
-            <div className="col-md-2">
+            <div className="col-md-3">
               <div className="card text-center">
                 <div className="card-body">
                   <h4 className="text-info">{orders.filter(o => o.status === 'PROCESSING').length}</h4>
@@ -235,23 +258,7 @@ const OrderManagement = () => {
                 </div>
               </div>
             </div>
-            <div className="col-md-2">
-              <div className="card text-center">
-                <div className="card-body">
-                  <h4 className="text-secondary">{orders.filter(o => o.status === 'SHIPPED').length}</h4>
-                  <small className="text-muted">Shipped</small>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-2">
-              <div className="card text-center">
-                <div className="card-body">
-                  <h4 className="text-warning">{orders.filter(o => o.status === 'OUT_FOR_DELIVERY').length}</h4>
-                  <small className="text-muted">Out for Delivery</small>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-2">
+            <div className="col-md-3">
               <div className="card text-center">
                 <div className="card-body">
                   <h4 className="text-success">{orders.filter(o => o.status === 'DELIVERED').length}</h4>

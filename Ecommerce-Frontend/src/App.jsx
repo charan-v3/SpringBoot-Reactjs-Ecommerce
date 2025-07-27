@@ -22,6 +22,7 @@ import UserProfile from "./components/UserProfile";
 import AdminVerificationDashboard from "./components/AdminVerificationDashboard";
 import CustomerAnalytics from "./components/CustomerAnalytics";
 import OrderManagement from "./components/OrderManagement";
+import TestOrderManagement from "./components/TestOrderManagement";
 import OrderDetail from "./components/OrderDetail";
 import RoleRedirect from "./components/RoleRedirect";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -145,9 +146,9 @@ function App() {
               }
             />
 
-            {/* Order Management */}
+            {/* Admin Order Management */}
             <Route
-              path="/orders"
+              path="/admin/orders"
               element={
                 <ProtectedRoute requireAdmin={true}>
                   <OrderManagement />

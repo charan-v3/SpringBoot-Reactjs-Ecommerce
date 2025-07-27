@@ -187,24 +187,45 @@ public class OrderController {
                                              @PathVariable Long orderId,
                                              @RequestBody Map<String, String> statusUpdate) {
         try {
+            System.out.println("Order status update request received");
+            System.out.println("Order ID: " + orderId);
+            System.out.println("Status update payload: " + statusUpdate);
+
             String jwt = token.substring(7);
             String role = jwtUtil.extractRole(jwt);
+            System.out.println("User role: " + role);
 
             if (!"ADMIN".equals(role)) {
+                System.out.println("Access denied for role: " + role);
                 return new ResponseEntity<>(Map.of("error", "Access denied"), HttpStatus.FORBIDDEN);
             }
 
             String statusStr = statusUpdate.get("status");
+            System.out.println("Status string received: '" + statusStr + "'");
+
+            if (statusStr == null || statusStr.trim().isEmpty()) {
+                System.out.println("Status string is null or empty");
+                return new ResponseEntity<>(Map.of("error", "Status is required"), HttpStatus.BAD_REQUEST);
+            }
+
             Order.OrderStatus status = Order.OrderStatus.valueOf(statusStr.toUpperCase());
-            
+            System.out.println("Parsed status enum: " + status);
+
             OrderResponse order = orderService.updateOrderStatus(orderId, status);
+            System.out.println("Order status updated successfully");
             return new ResponseEntity<>(order, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(Map.of("error", "Invalid status"), HttpStatus.BAD_REQUEST);
+            System.err.println("Invalid status error: " + e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>(Map.of("error", "Invalid status: " + e.getMessage()), HttpStatus.BAD_REQUEST);
         } catch (RuntimeException e) {
+            System.err.println("Runtime error: " + e.getMessage());
+            e.printStackTrace();
             return new ResponseEntity<>(Map.of("error", e.getMessage()), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            return new ResponseEntity<>(Map.of("error", "Failed to update order status"), HttpStatus.INTERNAL_SERVER_ERROR);
+            System.err.println("General error: " + e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>(Map.of("error", "Failed to update order status: " + e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

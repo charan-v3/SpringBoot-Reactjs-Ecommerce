@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../Context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from '../axios';
 
 const AdminDashboard = () => {
@@ -335,11 +335,24 @@ const AdminDashboard = () => {
                     <div className="col-md-3 mb-2">
                       <button
                         className="btn btn-outline-info w-100"
-                        onClick={() => navigate('/admin/orders')}
+                        onClick={() => {
+                          console.log('Manage Orders button clicked');
+                          console.log('Navigating to /admin/orders');
+                          navigate('/admin/orders');
+                        }}
                       >
                         <i className="bi bi-bag-check me-2"></i>
-                        Manage Orders
+                        Manage Orders (Navigate)
                       </button>
+                    </div>
+                    <div className="col-md-3 mb-2">
+                      <a
+                        href="/admin/orders"
+                        className="btn btn-outline-success w-100"
+                      >
+                        <i className="bi bi-bag-check me-2"></i>
+                        Manage Orders (Link)
+                      </a>
                     </div>
                     <div className="col-md-3 mb-2">
                       <button

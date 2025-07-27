@@ -130,18 +130,32 @@ public class OrderService {
 
     @Transactional
     public OrderResponse updateOrderStatus(Long orderId, Order.OrderStatus status) {
-        Order order = orderRepo.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+        try {
+            System.out.println("OrderService: Updating order " + orderId + " to status " + status);
 
-        order.setStatus(status);
-        
-        // Set delivery date if status is DELIVERED
-        if (status == Order.OrderStatus.DELIVERED) {
-            order.setDeliveryDate(LocalDateTime.now());
+            Order order = orderRepo.findById(orderId)
+                    .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
+
+            System.out.println("OrderService: Found order with current status: " + order.getStatus());
+
+            order.setStatus(status);
+            System.out.println("OrderService: Status set to: " + status);
+
+            // Set delivery date if status is DELIVERED
+            if (status == Order.OrderStatus.DELIVERED) {
+                order.setDeliveryDate(LocalDateTime.now());
+                System.out.println("OrderService: Delivery date set");
+            }
+
+            Order savedOrder = orderRepo.save(order);
+            System.out.println("OrderService: Order saved successfully with new status: " + savedOrder.getStatus());
+
+            return new OrderResponse(savedOrder);
+        } catch (Exception e) {
+            System.err.println("OrderService: Error updating order status: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
-
-        Order savedOrder = orderRepo.save(order);
-        return new OrderResponse(savedOrder);
     }
 
     public List<OrderResponse> getAllOrders() {
